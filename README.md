@@ -1,7 +1,7 @@
 # Probably Stolen - Workshop Uploader
 
 A small standalone Windows tool that publishes local mod folders to the Steam Workshop
-(App ID **4348910**) using SteamCMD.
+(App ID **4348910**) Probably Stolen using SteamCMD.
 
 ## Where it is
 
