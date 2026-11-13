@@ -21,7 +21,7 @@ namespace PSWorkshopUploader
 		private const string WorkshopHub = "https://steamcommunity.com/app/4348910/workshop/";
 		private const string SteamCmdDownload = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
 
-		private static readonly Regex IdRegex = new Regex(@"(?i)(?:published\s*file\s*id|publishedfileid)\s*[:\-]?\s*(\d{5,})", RegexOptions.Compiled);
+		private static readonly Regex IdRegex = new Regex(@"(?i)(?:published\s*file\s*id|publishedfileid|publishfileid)\s*[:\-]?\s*(\d{5,})", RegexOptions.Compiled);
 		private static readonly Regex PathRegex = new Regex("\"path\"\\s+\"([^\"]+)\"", RegexOptions.Compiled);
 
 		private readonly AppSettings _settings;
@@ -889,7 +889,16 @@ namespace PSWorkshopUploader
 
 			if (move)
 			{
-				MoveModToBackup(mod, backupFolder);
+				try
+				{
+					MoveModToBackup(mod, backupFolder);
+				}
+				catch (Exception moveError)
+				{
+					// The upload already succeeded; a locked DLL (game running) must not turn this into a failure.
+					Log("Could not move the local mod folder (is the game running?): " + moveError.Message);
+					Log("The mod is uploaded; move or delete " + mod.Folder + " manually.");
+				}
 			}
 			return newId;
 		}
