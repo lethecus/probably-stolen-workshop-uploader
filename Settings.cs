@@ -16,6 +16,7 @@ namespace PSWorkshopUploader
 		public string BackupFolder { get; set; } = "";
 		public bool MoveAfterUpload { get; set; } = false;
 		public string Language { get; set; } = "";
+		public Dictionary<string, string> Previews { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 		public Dictionary<string, string> PublishedIds { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 		private static string SettingsPath
@@ -38,6 +39,7 @@ namespace PSWorkshopUploader
 					if (loaded != null)
 					{
 						loaded.PublishedIds ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+						loaded.Previews ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 						return loaded;
 					}
 				}

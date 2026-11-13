@@ -10,7 +10,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Product>Probably Stolen Workshop Uploader</Product>
     <AssemblyTitle>Probably Stolen Workshop Uploader</AssemblyTitle>
   </PropertyGroup>

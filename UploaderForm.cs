@@ -43,6 +43,8 @@ namespace PSWorkshopUploader
 		private readonly Button _btnRefresh = new Button();
 
 		private readonly CheckedListBox _lstMods = new CheckedListBox();
+		private readonly Button _btnPreview = new Button();
+		private readonly Label _lblPreviewInfo = new Label();
 
 		private readonly Label _lblUser = new Label();
 		private readonly Label _lblVisibility = new Label();
@@ -156,10 +158,14 @@ namespace PSWorkshopUploader
 
 			_grpList.SetBounds(12, 190, 996, 196);
 			_grpList.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-			_lstMods.SetBounds(14, 24, 966, 156);
+			_lstMods.SetBounds(14, 24, 966, 122);
 			_lstMods.CheckOnClick = true;
 			_lstMods.IntegralHeight = false;
-			_grpList.Controls.Add(_lstMods);
+			_lstMods.SelectedIndexChanged += (s, e) => UpdatePreviewLabel();
+			_btnPreview.SetBounds(14, 152, 160, 28);
+			_btnPreview.Click += (s, e) => ChoosePreview();
+			_lblPreviewInfo.SetBounds(184, 156, 790, 20);
+			_grpList.Controls.AddRange(new Control[] { _lstMods, _btnPreview, _lblPreviewInfo });
 
 			_grpSettings.SetBounds(12, 394, 996, 182);
 			_grpSettings.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -292,6 +298,7 @@ namespace PSWorkshopUploader
 			_btnOpenMods.Text = L.T("btn.modsfolder");
 			_btnSavePrefs.Text = L.T("btn.saveprefs");
 			_btnBrowseBackups.Text = L.T("btn.browse");
+			_btnPreview.Text = L.T("btn.preview");
 
 			_lblUser.Text = L.T("lbl.user");
 			_lblVisibility.Text = L.T("lbl.visibility");
@@ -335,8 +342,52 @@ namespace PSWorkshopUploader
 			_tips.SetToolTip(_btnPublish, L.T("tip.publish"));
 			_tips.SetToolTip(_btnSignIn, L.T("tip.signin"));
 			_tips.SetToolTip(_cboLanguage, L.T("lbl.language"));
+			_tips.SetToolTip(_btnPreview, L.T("tip.preview"));
 
 			UpdateSteamStatus();
+			UpdatePreviewLabel();
+		}
+
+		private void UpdatePreviewLabel()
+		{
+			ModInfo mod = _lstMods.SelectedItem as ModInfo;
+			if (mod == null)
+			{
+				_lblPreviewInfo.Text = "";
+				return;
+			}
+			if (_settings.Previews != null && _settings.Previews.TryGetValue(mod.Id, out string custom) && !string.IsNullOrEmpty(custom))
+			{
+				_lblPreviewInfo.Text = L.T("lbl.previewCustom", Path.GetFileName(custom));
+			}
+			else
+			{
+				_lblPreviewInfo.Text = L.T("lbl.previewAuto");
+			}
+		}
+
+		private void ChoosePreview()
+		{
+			ModInfo mod = _lstMods.SelectedItem as ModInfo;
+			if (mod == null)
+			{
+				MessageBox.Show(this, L.T("msg.pickModFirst"), L.T("btn.preview"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+			using var dialog = new OpenFileDialog
+			{
+				Title = L.T("btn.preview"),
+				Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg|All files (*.*)|*.*"
+			};
+			if (dialog.ShowDialog(this) != DialogResult.OK)
+			{
+				return;
+			}
+			_settings.Previews ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			_settings.Previews[mod.Id] = dialog.FileName;
+			_settings.Save();
+			Log(L.T("log.previewSet", mod.Name, dialog.FileName));
+			UpdatePreviewLabel();
 		}
 
 		// ---------------------------------------------------------------- helpers
@@ -830,7 +881,24 @@ namespace PSWorkshopUploader
 			CopyDirectory(mod.Folder, content);
 			Log(L.T("log.staged", Directory.GetFiles(content, "*", SearchOption.AllDirectories).Length));
 
-			string preview = FindPreview(mod.Folder);
+			string preview = null;
+			bool customPreview = false;
+			if (_settings.Previews != null && _settings.Previews.TryGetValue(mod.Id, out string chosen) && !string.IsNullOrEmpty(chosen))
+			{
+				if (File.Exists(chosen))
+				{
+					preview = chosen;
+					customPreview = true;
+				}
+				else
+				{
+					Log(L.T("log.previewMissing", mod.Name));
+				}
+			}
+			if (preview == null)
+			{
+				preview = FindPreview(mod.Folder);
+			}
 			if (preview == null)
 			{
 				preview = Path.Combine(staging, "preview.png");
@@ -839,6 +907,13 @@ namespace PSWorkshopUploader
 			}
 			else
 			{
+				if (customPreview)
+				{
+					// Copy the chosen image into the staging folder so the upload does not depend on the original location.
+					string staged = Path.Combine(staging, "preview" + Path.GetExtension(preview));
+					File.Copy(preview, staged, true);
+					preview = staged;
+				}
 				Log(L.T("log.previewUsing", preview));
 			}
 
