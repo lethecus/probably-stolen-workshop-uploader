@@ -45,6 +45,7 @@ namespace PSWorkshopUploader
 		private readonly CheckedListBox _lstMods = new CheckedListBox();
 		private readonly Button _btnPreview = new Button();
 		private readonly Label _lblPreviewInfo = new Label();
+		private bool _updatingChecks;
 
 		private readonly Label _lblUser = new Label();
 		private readonly Label _lblVisibility = new Label();
@@ -162,6 +163,31 @@ namespace PSWorkshopUploader
 			_lstMods.CheckOnClick = true;
 			_lstMods.IntegralHeight = false;
 			_lstMods.SelectedIndexChanged += (s, e) => UpdatePreviewLabel();
+			_lstMods.ItemCheck += (s, e) =>
+			{
+				if (_updatingChecks || e.NewValue != CheckState.Checked)
+				{
+					return;
+				}
+				// Only one mod may be published at a time, so the preview choice always belongs
+				// to the checked mod.
+				_updatingChecks = true;
+				try
+				{
+					for (int i = 0; i < _lstMods.Items.Count; i++)
+					{
+						if (i != e.Index)
+						{
+							_lstMods.SetItemChecked(i, false);
+						}
+					}
+					_lstMods.SelectedIndex = e.Index;
+				}
+				finally
+				{
+					_updatingChecks = false;
+				}
+			};
 			_btnPreview.SetBounds(14, 152, 160, 28);
 			_btnPreview.Click += (s, e) => ChoosePreview();
 			_lblPreviewInfo.SetBounds(184, 156, 790, 20);
